@@ -7,9 +7,12 @@ import com.wix.pay.model.{CurrencyAmount, Deal, ShippingAddress}
 import com.wix.pay.worldpay.smb.parsers.{JsonWorldpaySmbAuthorizationParser, JsonWorldpaySmbMerchantParser}
 import com.wix.pay.worldpay.smb.testkit.WorldpaySmbDriver
 import com.wix.pay.{PaymentErrorException, PaymentRejectedException}
+import org.specs2.matcher.Matcher
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
 import spray.http.StatusCodes
+
+import scala.util.Try
 
 class WorldpaySmbGatewayIT extends SpecWithJUnit {
   val probePort = 10001
@@ -34,12 +37,12 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
 
     "fail with PaymentRejectedException for rejected transactions" in new Ctx {
       givenWorldpayAuthorizationRequest isRejectedWith(someOrderCode, "Some error message")
-      authorize() must beFailedTry.like { case e: PaymentRejectedException => e.message mustEqual "Some error message" }
+      authorize() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpayAuthorizationRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
-      authorize() must beFailedTry.like { case e: PaymentErrorException => e.message must contain("Something bad happened") }
+      authorize() must failWithMessage("Something bad happened")
     }
   }
 
@@ -51,7 +54,7 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.BadRequest, "Something bad happened")
-      capture() must beFailedTry.like { case e: PaymentErrorException => e.message must contain("Something bad happened") }
+      capture() must failWithMessage("Something bad happened")
     }
   }
 
@@ -63,12 +66,12 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
 
     "fail with PaymentRejectedException for rejected transactions" in new Ctx {
       givenWorldpaySaleRequest isRejectedWith(someOrderCode, "Some error message")
-      sale() must beFailedTry.like { case e: PaymentRejectedException => e.message mustEqual "Some error message" }
+      sale() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpaySaleRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
-      sale() must beFailedTry.like { case e: PaymentErrorException => e.message must contain("Something bad happened") }
+      sale() must failWithMessage("Something bad happened")
     }
   }
 
@@ -80,7 +83,7 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Something bad happened")
-      voidAuthorization() must beFailedTry.like { case e: PaymentErrorException => e.message must contain("Something bad happened") }
+      voidAuthorization() must failWithMessage("Something bad happened")
     }
   }
 
@@ -138,5 +141,8 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
 
     def givenWorldpayVoidAuthorizationRequest = driver.aVoidAuthorizationRequest(serviceKey, someOrderCode)
     def voidAuthorization() = worldpayGateway.voidAuthorization(someMerchant, someAuthorization)
+
+    def beRejectedWithMessage(message: String): Matcher[Try[String]] = beFailedTry.like { case e: PaymentRejectedException => e.message mustEqual message }
+    def failWithMessage(message: String): Matcher[Try[String]] = beFailedTry.like { case e: PaymentErrorException => e.message must contain(message) }
   }
 }
