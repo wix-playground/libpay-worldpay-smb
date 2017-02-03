@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>libpay-worldpay-smb</artifactId>
+    <name>libpay Worldpay Small-Medium Business payment gateway adapter</name>
+    <description>Worldpay Small-Medium Business payment gateway</description>
+
+
+    <parent>
+        <groupId>com.wix.pay</groupId>
+        <artifactId>libpay-worldpay-smb-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../libpay-worldpay-smb-parent</relativePath>
+    </parent>
+
+
+    <developers>
+        <developer>
+            <name>Yevgeny Krasik</name>
+            <email>evgenyk@wix.com</email>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.wix.pay</groupId>
+            <artifactId>libpay-api</artifactId>
+            <version>${com.wix.pay.libpay.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.worldpay</groupId>
+            <artifactId>worldpay-lib-java</artifactId>
+            <version>${com.worldpay.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.dependencies.version}</artifactId>
+            <version>${org.json4js.version}</version>
+        </dependency>
+
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>com.wix.pay</groupId>
+            <artifactId>libpay-worldpay-smb-testkit</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

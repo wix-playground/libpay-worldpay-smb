@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.wix.pay</groupId>
+    <artifactId>libpay-worldpay-smb-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>libpay Worldpay Small-Medium Business payment gateway adapter parent</name>
+    <description>libpay module for Worldpay Small-Medium Business payment gateway parent pom</description>
+    <url>https://github.com/wix/libpay-worldpay-smb</url>
+
+
+    <parent>
+        <groupId>com.wix</groupId>
+        <artifactId>wix-oss-parent</artifactId>
+        <version>1.4.0</version>
+        <relativePath />
+    </parent>
+
+
+
+    <developers>
+        <developer>
+            <name>Yevgeny Krasik</name>
+            <email>evgenyk@wix.com</email>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+
+
+    <scm>
+        <url>https://github.com/wix/libpay-worldpay-smb</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <url>https://github.com/wix/libpay-worldpay-smb/issues</url>
+        <system>GitHub Issues</system>
+    </issueManagement>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+
+    <properties>
+        <com.wix.hoopoe.http.version>0.0.1</com.wix.hoopoe.http.version>
+        <org.json4js.version>3.4.0</org.json4js.version>
+        <com.wix.pay.libpay.version>1.0.0-SNAPSHOT</com.wix.pay.libpay.version>
+        <com.worldpay.version>0.1.13</com.worldpay.version>
+    </properties>
+</project>
