@@ -1,7 +1,7 @@
 package com.wix.pay.worldpay.smb
 
 import com.wix.pay.creditcard.{AddressDetailed, CreditCard}
-import com.wix.pay.model.{CurrencyAmount, Customer, Deal, ShippingAddress}
+import com.wix.pay.model._
 import com.wix.pay.worldpay.smb.parsers.{JsonWorldpaySmbAuthorizationParser, JsonWorldpaySmbMerchantParser, WorldpaySmbAuthorizationParser, WorldpaySmbMerchantParser}
 import com.wix.pay.{PaymentErrorException, PaymentGateway, PaymentRejectedException}
 import com.worldpay.api.client.common.enums.OrderStatus
@@ -12,12 +12,12 @@ import com.worldpay.sdk.WorldpayRestClient
 
 import scala.util.Try
 
-class WorldpaySmbGateway(baseUrl: String,
+class WorldpaySmbGateway(endpointUrl: String,
                          merchantParser: WorldpaySmbMerchantParser = JsonWorldpaySmbMerchantParser,
                          authorizationParser: WorldpaySmbAuthorizationParser = JsonWorldpaySmbAuthorizationParser) extends PaymentGateway {
 
-  override def authorize(merchantKey: String, creditCard: CreditCard, currencyAmount: CurrencyAmount, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
-    submitOrder(merchantKey, creditCard, currencyAmount, deal, authorizeOnly = true)
+  override def authorize(merchantKey: String, creditCard: CreditCard, payment: Payment, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
+    submitOrder(merchantKey, creditCard, payment, deal, authorizeOnly = true)
   }
 
   override def capture(merchantKey: String, authorizationKey: String, amount: Double): Try[String] = {
@@ -27,8 +27,8 @@ class WorldpaySmbGateway(baseUrl: String,
     }
   }
 
-  override def sale(merchantKey: String, creditCard: CreditCard, currencyAmount: CurrencyAmount, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
-    submitOrder(merchantKey, creditCard, currencyAmount, deal, authorizeOnly = false)
+  override def sale(merchantKey: String, creditCard: CreditCard, payment: Payment, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
+    submitOrder(merchantKey, creditCard, payment, deal, authorizeOnly = false)
   }
 
   override def voidAuthorization(merchantKey: String, authorizationKey: String): Try[String] = {
@@ -39,15 +39,16 @@ class WorldpaySmbGateway(baseUrl: String,
 
   private def submitOrder(merchantKey: String,
                           creditCard: CreditCard,
-                          currencyAmount: CurrencyAmount,
+                          payment: Payment,
                           deal: Option[Deal],
                           authorizeOnly: Boolean): Try[String] = {
     withExceptionHandling {
+      require(payment.installments == 1, "Worldpay does not support installments!")
       verifyRequiredParams(creditCard)
 
       val client = createClient(merchantKey)
 
-      val orderRequest = createOrderRequest(creditCard, currencyAmount, deal, authorizeOnly)
+      val orderRequest = createOrderRequest(creditCard, payment.currencyAmount, deal, authorizeOnly)
       val orderResponse = client.getOrderService.create(orderRequest)
       if (orderResponse.getPaymentStatus == OrderStatus.FAILED.name()) {
         throw new PaymentRejectedException(orderResponse.getPaymentStatusReason, cause = null)
@@ -131,7 +132,7 @@ class WorldpaySmbGateway(baseUrl: String,
 
   private def createClient(merchantKey: String) = {
     val merchant = merchantParser.parse(merchantKey)
-    new WorldpayRestClient(baseUrl, merchant.serviceKey)
+    new WorldpayRestClient(endpointUrl, merchant.serviceKey)
   }
 
   private def withExceptionHandling[T](f: => T): Try[T] = {

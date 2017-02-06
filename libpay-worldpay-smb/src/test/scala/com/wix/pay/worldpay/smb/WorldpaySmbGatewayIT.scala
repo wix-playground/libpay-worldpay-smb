@@ -3,18 +3,14 @@ package com.wix.pay.worldpay.smb
 import java.util.Locale
 
 import com.wix.pay.creditcard._
-import com.wix.pay.model.{CurrencyAmount, Deal, ShippingAddress}
+import com.wix.pay.model.{CurrencyAmount, Deal, Payment, ShippingAddress}
 import com.wix.pay.worldpay.smb.parsers.{JsonWorldpaySmbAuthorizationParser, JsonWorldpaySmbMerchantParser}
 import com.wix.pay.worldpay.smb.testkit.WorldpaySmbDriver
-import com.wix.pay.{PaymentErrorException, PaymentRejectedException}
-import org.specs2.matcher.Matcher
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
 import spray.http.StatusCodes
 
-import scala.util.Try
-
-class WorldpaySmbGatewayIT extends SpecWithJUnit {
+class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
   val probePort = 10001
   val driver = new WorldpaySmbDriver(probePort)
 
@@ -129,20 +125,18 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit {
       )))
 
     val currencyAmount = CurrencyAmount("USD", 5.67)
+    val payment = Payment(currencyAmount, installments = 1)
 
     def givenWorldpayAuthorizationRequest = driver.anAuthorizationRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def authorize() = worldpayGateway.authorize(someMerchant, creditCard, currencyAmount, None, Some(deal))
+    def authorize() = worldpayGateway.authorize(someMerchant, creditCard, payment, None, Some(deal))
 
     def givenWorldpayCaptureRequest = driver.aCaptureRequest(serviceKey, someOrderCode, creditCard, currencyAmount, Some(deal))
     def capture() = worldpayGateway.capture(someMerchant, someAuthorization, currencyAmount.amount)
 
     def givenWorldpaySaleRequest = driver.aSaleRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def sale() = worldpayGateway.sale(someMerchant, creditCard, currencyAmount, None, Some(deal))
+    def sale() = worldpayGateway.sale(someMerchant, creditCard, payment, None, Some(deal))
 
     def givenWorldpayVoidAuthorizationRequest = driver.aVoidAuthorizationRequest(serviceKey, someOrderCode)
     def voidAuthorization() = worldpayGateway.voidAuthorization(someMerchant, someAuthorization)
-
-    def beRejectedWithMessage(message: String): Matcher[Try[String]] = beFailedTry.like { case e: PaymentRejectedException => e.message mustEqual message }
-    def failWithMessage(message: String): Matcher[Try[String]] = beFailedTry.like { case e: PaymentErrorException => e.message must contain(message) }
   }
 }

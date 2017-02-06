@@ -53,7 +53,7 @@
     <properties>
         <com.wix.hoopoe.http.version>0.0.1</com.wix.hoopoe.http.version>
         <org.json4js.version>3.4.0</org.json4js.version>
-        <com.wix.pay.libpay.version>1.0.0-SNAPSHOT</com.wix.pay.libpay.version>
+        <com.wix.pay.libpay.version>1.3.0-SNAPSHOT</com.wix.pay.libpay.version>
         <com.worldpay.version>0.1.13</com.worldpay.version>
     </properties>
 </project>
