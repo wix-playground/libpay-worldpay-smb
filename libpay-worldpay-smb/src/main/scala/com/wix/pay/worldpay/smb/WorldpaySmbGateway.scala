@@ -17,7 +17,9 @@ class WorldpaySmbGateway(endpointUrl: String,
                          authorizationParser: WorldpaySmbAuthorizationParser = JsonWorldpaySmbAuthorizationParser) extends PaymentGateway {
 
   override def authorize(merchantKey: String, creditCard: CreditCard, payment: Payment, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
-    submitOrder(merchantKey, creditCard, payment, deal, authorizeOnly = true)
+    for (orderCode <- submitOrder(merchantKey, creditCard, payment, deal, authorizeOnly = true)) yield {
+      authorizationParser.stringify(WorldpaySmbAuthorization(orderCode))
+    }
   }
 
   override def capture(merchantKey: String, authorizationKey: String, amount: Double): Try[String] = {
@@ -53,7 +55,7 @@ class WorldpaySmbGateway(endpointUrl: String,
       if (orderResponse.getPaymentStatus == OrderStatus.FAILED.name()) {
         throw new PaymentRejectedException(orderResponse.getPaymentStatusReason, cause = null)
       }
-      authorizationParser.stringify(WorldpaySmbAuthorization(orderResponse.getOrderCode))
+      orderResponse.getOrderCode
     }
   }
 

@@ -57,7 +57,7 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
   "sale request" should {
     "successfully yield an authorization key upon a valid request" in new Ctx {
       givenWorldpaySaleRequest returns someOrderCode
-      sale() must beSuccessfulTry.withValue(someAuthorization)
+      sale() must beSuccessfulTry.withValue(someOrderCode)
     }
 
     "fail with PaymentRejectedException for rejected transactions" in new Ctx {
