@@ -1,23 +1,13 @@
 package com.wix.pay.worldpay.smb
 
-import java.util.Locale
-
-import com.wix.pay.creditcard._
-import com.wix.pay.model.{CurrencyAmount, Deal, Payment, ShippingAddress}
-import com.wix.pay.worldpay.smb.parsers.{JsonWorldpaySmbAuthorizationParser, JsonWorldpaySmbMerchantParser}
 import com.wix.pay.worldpay.smb.testkit.WorldpaySmbDriver
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
 import spray.http.StatusCodes
 
-class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
+class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
   val probePort = 10001
   val driver = new WorldpaySmbDriver(probePort)
-
-  val someOrderCode = "someOrderCode"
-  val serviceKey = "someServiceKey"
-  val someMerchant = JsonWorldpaySmbMerchantParser.stringify(WorldpaySmbMerchant(serviceKey))
-  val someAuthorization = JsonWorldpaySmbAuthorizationParser.stringify(WorldpaySmbAuthorization(someOrderCode))
 
   step {
     driver.start()
@@ -108,55 +98,20 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
   }
 
   trait Ctx extends Scope {
-    val worldpayGateway = new WorldpaySmbGateway(s"http://localhost:$probePort")
+    val gateway = new WorldpaySmbGateway(s"http://localhost:$probePort")
 
     driver.reset()
 
-    val creditCard = CreditCard("4580458045804580", YearMonth(2020, 12), Some(CreditCardOptionalFields(
-      csc = Some("123"),
-      publicFields = Some(PublicCreditCardOptionalFields(
-        holderId = None,
-        holderName = Some("Some Name"),
-        billingAddressDetailed = Some(AddressDetailed(
-          street = Some("billingStreet"),
-          city = Some("billingCity"),
-          state = Some("billingState"),
-          postalCode = Some("billingPostalCode"),
-          countryCode = Some(Locale.GERMANY)
-        ))
-      ))
-    )))
-
-    val deal = Deal(
-      id = "123",
-      title = Some("title"),
-      description = Some("desc"),
-      invoiceId = Some("invoiceId"),
-      shippingAddress = Some(ShippingAddress(
-        firstName = Some("firstName"),
-        lastName = Some("lastName"),
-        address = Some(AddressDetailed(
-          street = Some("shippingStreet"),
-          city = Some("shippingCity"),
-          postalCode = Some("shippingPostalCode"),
-          state = Some("shippingState"),
-          countryCode = Some(Locale.CHINA)
-        ))
-      )))
-
-    val currencyAmount = CurrencyAmount("USD", 5.67)
-    val payment = Payment(currencyAmount, installments = 1)
-
     def givenWorldpayAuthorizationRequest = driver.anAuthorizationRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def authorize() = worldpayGateway.authorize(someMerchant, creditCard, payment, None, Some(deal))
+    def authorize() = gateway.authorize(someMerchant, creditCard, payment, None, Some(deal))
 
     def givenWorldpayCaptureRequest = driver.aCaptureRequest(serviceKey, someOrderCode, creditCard, currencyAmount, Some(deal))
-    def capture() = worldpayGateway.capture(someMerchant, someAuthorization, currencyAmount.amount)
+    def capture() = gateway.capture(someMerchant, someAuthorization, currencyAmount.amount)
 
     def givenWorldpaySaleRequest = driver.aSaleRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def sale() = worldpayGateway.sale(someMerchant, creditCard, payment, None, Some(deal))
+    def sale() = gateway.sale(someMerchant, creditCard, payment, None, Some(deal))
 
     def givenWorldpayVoidAuthorizationRequest = driver.aVoidAuthorizationRequest(serviceKey, someOrderCode)
-    def voidAuthorization() = worldpayGateway.voidAuthorization(someMerchant, someAuthorization)
+    def voidAuthorization() = gateway.voidAuthorization(someMerchant, someAuthorization)
   }
 }

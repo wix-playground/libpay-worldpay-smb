@@ -1,12 +1,11 @@
 package com.wix.pay.worldpay.smb
 
 import com.wix.pay.creditcard._
-import com.wix.pay.model.{CurrencyAmount, Payment}
-import com.wix.pay.worldpay.smb.parsers.{JsonWorldpaySmbAuthorizationParser, JsonWorldpaySmbMerchantParser}
+import com.wix.pay.model.Payment
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
 
-class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayMatcherSupport {
+class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayTestSupport {
   "authorize request" should {
     "fail for invalid merchant format" in new Ctx {
       authorize(merchantKey = "invalid") must beParseError
@@ -79,19 +78,6 @@ class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayMatcherSupport {
 
   trait Ctx extends Scope {
     val worldpayGateway = new WorldpaySmbGateway("")
-
-    val serviceKey = "someServiceKey"
-    val someMerchant = JsonWorldpaySmbMerchantParser.stringify(WorldpaySmbMerchant(serviceKey))
-
-    val someOrderCode = "$$$"
-    val someAuthorization = JsonWorldpaySmbAuthorizationParser.stringify(WorldpaySmbAuthorization(someOrderCode))
-
-    val creditCard = CreditCard("4580458045804580", YearMonth(2020, 12), Some(CreditCardOptionalFields.withFields(
-      csc = Some("123"), holderName = Some("name")
-    )))
-
-    val currencyAmount = CurrencyAmount("USD", 5.67)
-    val payment = Payment(currencyAmount, installments = 1)
 
     def authorize(merchantKey: String = someMerchant, creditCard: CreditCard = creditCard, payment: Payment = payment) =
       worldpayGateway.authorize(merchantKey, creditCard, payment, customer = None, deal = None)
