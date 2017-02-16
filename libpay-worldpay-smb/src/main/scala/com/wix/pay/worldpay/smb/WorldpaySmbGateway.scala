@@ -8,6 +8,7 @@ import com.worldpay.api.client.common.enums.OrderStatus
 import com.worldpay.gateway.clearwater.client.core.dto.common.{Address, CommonToken, DeliveryAddress}
 import com.worldpay.gateway.clearwater.client.core.dto.request.{CaptureOrderRequest, CardRequest, OrderRequest}
 import com.worldpay.gateway.clearwater.client.core.dto.{CountryCode, CurrencyCode}
+import com.worldpay.gateway.clearwater.client.core.exception.WorldpayException
 import com.worldpay.sdk.WorldpayRestClient
 
 import scala.util.Try
@@ -142,6 +143,7 @@ class WorldpaySmbGateway(endpointUrl: String,
       f
     } recover {
       case e: PaymentRejectedException => throw e
+      case e: WorldpayException if e.getApiError.getHttpStatusCode == 400 => throw PaymentRejectedException(e.getMessage, e)
       case e => throw PaymentErrorException(e.getMessage, e)
     }
   }

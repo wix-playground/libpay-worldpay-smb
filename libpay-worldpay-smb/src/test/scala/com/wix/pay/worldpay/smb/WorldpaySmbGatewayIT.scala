@@ -36,6 +36,11 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
       authorize() must beRejectedWithMessage("Some error message")
     }
 
+    "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
+      givenWorldpayAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      authorize() must beRejectedWithMessage("Some error message")
+    }
+
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpayAuthorizationRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       authorize() must failWithMessage("Something bad happened")
@@ -48,8 +53,13 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
       capture() must beSuccessfulTry.withValue(someOrderCode)
     }
 
+    "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
+      givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      capture() must beRejectedWithMessage("Some error message")
+    }
+
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.BadRequest, "Something bad happened")
+      givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       capture() must failWithMessage("Something bad happened")
     }
   }
@@ -65,6 +75,11 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
       sale() must beRejectedWithMessage("Some error message")
     }
 
+    "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
+      givenWorldpaySaleRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      sale() must beRejectedWithMessage("Some error message")
+    }
+
     "fail with PaymentErrorException for erroneous response" in new Ctx {
       givenWorldpaySaleRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       sale() must failWithMessage("Something bad happened")
@@ -77,8 +92,13 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayMatcherSupport {
       voidAuthorization() must beSuccessfulTry.withValue(someOrderCode)
     }
 
+    "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
+      givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      voidAuthorization() must beRejectedWithMessage("Some error message")
+    }
+
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Something bad happened")
+      givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       voidAuthorization() must failWithMessage("Something bad happened")
     }
   }

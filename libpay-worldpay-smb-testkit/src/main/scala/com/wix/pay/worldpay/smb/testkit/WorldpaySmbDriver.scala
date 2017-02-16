@@ -8,15 +8,15 @@ import org.json4s.native.Serialization
 import spray.http._
 
 class WorldpaySmbDriver(port: Int) {
-  private val worldpayProbe = new EmbeddedHttpProbe(port, EmbeddedHttpProbe.NotFoundHandler)
+  private val probe = new EmbeddedHttpProbe(port, EmbeddedHttpProbe.NotFoundHandler)
 
-  def reset(): Unit = worldpayProbe.reset()
+  def reset(): Unit = probe.reset()
 
-  def start(): Unit = worldpayProbe.doStart()
+  def start(): Unit = probe.doStart()
 
-  def stop(): Unit = worldpayProbe.doStop()
+  def stop(): Unit = probe.doStop()
 
-  def requests = worldpayProbe.requests
+  def requests = probe.requests
 
   def anAuthorizationRequest(serviceKey: String,
                              creditCard: CreditCard,
@@ -65,7 +65,8 @@ class WorldpaySmbDriver(port: Int) {
     }
 
     protected def respondWith(status: StatusCode, content: String): Unit = {
-      worldpayProbe.handlers += {
+      probe.handlers.clear()
+      probe.handlers += {
         case HttpRequest(requestMethod, requestPath, headers, entity, _)
           if requestMethod == method &&
             requestPath.path == Uri(path).path &&
