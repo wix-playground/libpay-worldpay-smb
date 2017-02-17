@@ -1,6 +1,7 @@
 package com.wix.pay.worldpay.smb
 
 import com.wix.pay.model.Deal
+import com.worldpay.gateway.clearwater.client.core.dto.CurrencyCode
 import com.worldpay.gateway.clearwater.client.core.dto.request.OrderRequest
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.SpecWithJUnit
@@ -23,13 +24,24 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
     "use deal id as order description if deal is available but has no description or title" in new Ctx {
       createOrderRequest(Some(deal.withoutDescription.withoutTitle)) must haveDescription(deal.id)
     }
+
+    "use merchant settlement currency" in new Ctx {
+      createOrderRequest(None, merchant = someMerchant.copy(settlementCurrency = "UAH")) must haveSettlementCurrency(CurrencyCode.UAH)
+    }
   }
 
   trait Ctx extends Scope {
-    def createOrderRequest(deal: Option[Deal]) = WorldpaySmbRequestBuilder.createOrderRequest(creditCard, currencyAmount, deal, authorizeOnly = true)
+    def createOrderRequest(deal: Option[Deal],
+                           merchant: WorldpaySmbMerchant = someMerchant) = WorldpaySmbRequestBuilder.createOrderRequest(
+      merchant, creditCard, currencyAmount, deal, authorizeOnly = true
+    )
 
     def haveDescription(description: String): Matcher[OrderRequest] = {
       be_===(description) ^^ { (_: OrderRequest).getOrderDescription }
+    }
+
+    def haveSettlementCurrency(currency: CurrencyCode): Matcher[OrderRequest] = {
+      be_===(currency) ^^ { (_: OrderRequest).getSettlementCurrency }
     }
   }
 }

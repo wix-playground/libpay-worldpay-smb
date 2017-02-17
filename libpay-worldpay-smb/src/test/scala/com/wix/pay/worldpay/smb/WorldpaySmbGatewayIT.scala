@@ -102,16 +102,16 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
 
     driver.reset()
 
-    def givenWorldpayAuthorizationRequest = driver.anAuthorizationRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def authorize() = gateway.authorize(someMerchant, creditCard, payment, None, Some(deal))
+    def givenWorldpayAuthorizationRequest = driver.anAuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, Some(deal))
+    def authorize() = gateway.authorize(someMerchantStr, creditCard, payment, None, Some(deal))
 
     def givenWorldpayCaptureRequest = driver.aCaptureRequest(serviceKey, someOrderCode, creditCard, currencyAmount, Some(deal))
-    def capture() = gateway.capture(someMerchant, someAuthorization, currencyAmount.amount)
+    def capture() = gateway.capture(someMerchantStr, someAuthorization, currencyAmount.amount)
 
-    def givenWorldpaySaleRequest = driver.aSaleRequest(serviceKey, creditCard, currencyAmount, Some(deal))
-    def sale() = gateway.sale(someMerchant, creditCard, payment, None, Some(deal))
+    def givenWorldpaySaleRequest = driver.aSaleRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, Some(deal))
+    def sale() = gateway.sale(someMerchantStr, creditCard, payment, None, Some(deal))
 
     def givenWorldpayVoidAuthorizationRequest = driver.aVoidAuthorizationRequest(serviceKey, someOrderCode)
-    def voidAuthorization() = gateway.voidAuthorization(someMerchant, someAuthorization)
+    def voidAuthorization() = gateway.voidAuthorization(someMerchantStr, someAuthorization)
   }
 }

@@ -46,9 +46,10 @@ class WorldpaySmbGateway(endpointUrl: String,
       require(payment.installments == 1, "Worldpay does not support installments!")
       verifyRequiredParams(creditCard)
 
-      val client = createClient(merchantKey)
+      val merchant = merchantParser.parse(merchantKey)
+      val client = new WorldpayRestClient(endpointUrl, merchant.serviceKey)
 
-      val orderRequest = WorldpaySmbRequestBuilder.createOrderRequest(creditCard, payment.currencyAmount, deal, authorizeOnly)
+      val orderRequest = WorldpaySmbRequestBuilder.createOrderRequest(merchant, creditCard, payment.currencyAmount, deal, authorizeOnly)
       val orderResponse = client.getOrderService.create(orderRequest)
       if (orderResponse.getPaymentStatus == OrderStatus.FAILED.name()) {
         throw new PaymentRejectedException(orderResponse.getPaymentStatusReason, cause = null)
@@ -66,17 +67,13 @@ class WorldpaySmbGateway(endpointUrl: String,
                             authorizationKey: String)
                            (f: (WorldpayRestClient, String) => Unit): Try[String] = {
     withExceptionHandling {
-      val client = createClient(merchantKey)
+      val merchant = merchantParser.parse(merchantKey)
+      val client = new WorldpayRestClient(endpointUrl, merchant.serviceKey)
       val authorization = authorizationParser.parse(authorizationKey)
       val orderCode = authorization.orderCode
       f(client, orderCode)
       orderCode
     }
-  }
-
-  private def createClient(merchantKey: String) = {
-    val merchant = merchantParser.parse(merchantKey)
-    new WorldpayRestClient(endpointUrl, merchant.serviceKey)
   }
 
   private def withExceptionHandling[T](f: => T): Try[T] = {

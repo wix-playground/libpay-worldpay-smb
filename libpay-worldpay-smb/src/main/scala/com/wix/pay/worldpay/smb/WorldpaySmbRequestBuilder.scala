@@ -9,11 +9,16 @@ import com.worldpay.gateway.clearwater.client.core.dto.request.{CaptureOrderRequ
 object WorldpaySmbRequestBuilder {
   val defaultDealDescription = "Description unavailable"
 
-  def createOrderRequest(creditCard: CreditCard, currencyAmount: CurrencyAmount, deal: Option[Deal], authorizeOnly: Boolean): OrderRequest = {
+  def createOrderRequest(merchant: WorldpaySmbMerchant,
+                         creditCard: CreditCard,
+                         currencyAmount: CurrencyAmount,
+                         deal: Option[Deal],
+                         authorizeOnly: Boolean): OrderRequest = {
     val orderRequest = new OrderRequest()
     orderRequest.setAuthorizeOnly(authorizeOnly)
     orderRequest.setAmount(toWorldpayAmount(currencyAmount))
     orderRequest.setCurrencyCode(CurrencyCode.valueOf(currencyAmount.currency))
+    orderRequest.setSettlementCurrency(CurrencyCode.valueOf(merchant.settlementCurrency))
     orderRequest.setName(creditCard.holderName.get)
 
     val cardRequest = createCardRequest(creditCard)

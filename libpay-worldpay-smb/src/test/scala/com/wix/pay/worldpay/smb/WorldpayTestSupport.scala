@@ -14,7 +14,9 @@ import scala.util.Try
 
 trait WorldpayTestSupport {
   val serviceKey = "someServiceKey"
-  val someMerchant = JsonWorldpaySmbMerchantParser.stringify(WorldpaySmbMerchant(serviceKey))
+  val settlementCurrency = "USD"
+  val someMerchant = WorldpaySmbMerchant(serviceKey, settlementCurrency)
+  val someMerchantStr = JsonWorldpaySmbMerchantParser.stringify(someMerchant)
 
   val someOrderCode = "$$$"
   val someAuthorization = JsonWorldpaySmbAuthorizationParser.stringify(WorldpaySmbAuthorization(someOrderCode))
