@@ -19,10 +19,11 @@ class WorldpaySmbDriver(port: Int) {
   def requests = probe.requests
 
   def anAuthorizationRequest(serviceKey: String,
+                             settlementCurrency: String,
                              creditCard: CreditCard,
                              currencyAmount: CurrencyAmount,
                              deal: Option[Deal]) = {
-    AuthorizationRequest(serviceKey, creditCard, currencyAmount, deal, authorizeOnly = true)
+    AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = true)
   }
 
   def aCaptureRequest(serviceKey: String,
@@ -34,10 +35,11 @@ class WorldpaySmbDriver(port: Int) {
   }
 
   def aSaleRequest(serviceKey: String,
+                   settlementCurrency: String,
                    creditCard: CreditCard,
                    currencyAmount: CurrencyAmount,
                    deal: Option[Deal]) = {
-    AuthorizationRequest(serviceKey, creditCard, currencyAmount, deal, authorizeOnly = false)
+    AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = false)
   }
 
   def aVoidAuthorizationRequest(serviceKey: String,
@@ -114,6 +116,7 @@ class WorldpaySmbDriver(port: Int) {
   }
 
   case class AuthorizationRequest(serviceKey: String,
+                                  settlementCurrency: String,
                                   creditCard: CreditCard,
                                   currencyAmount: CurrencyAmount,
                                   deal: Option[Deal],
@@ -134,6 +137,7 @@ class WorldpaySmbDriver(port: Int) {
       "orderDescription" -> deal.flatMap(_.description),
       "amount" -> toWorldPayAmount(currencyAmount),
       "currencyCode" -> currencyAmount.currency,
+      "settlementCurrency" -> settlementCurrency,
       "billingAddress" -> billingAddressMap,
       "deliveryAddress" -> shippingAddressMap,
       "name" -> creditCard.holderName.get,

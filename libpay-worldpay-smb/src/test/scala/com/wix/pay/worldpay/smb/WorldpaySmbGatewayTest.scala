@@ -79,16 +79,16 @@ class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayTestSupport {
   trait Ctx extends Scope {
     val worldpayGateway = new WorldpaySmbGateway("")
 
-    def authorize(merchantKey: String = someMerchant, creditCard: CreditCard = creditCard, payment: Payment = payment) =
+    def authorize(merchantKey: String = someMerchantStr, creditCard: CreditCard = creditCard, payment: Payment = payment) =
       worldpayGateway.authorize(merchantKey, creditCard, payment, customer = None, deal = None)
 
-    def capture(merchantKey: String = someMerchant, authorization: String = someAuthorization) =
+    def capture(merchantKey: String = someMerchantStr, authorization: String = someAuthorization) =
       worldpayGateway.capture(merchantKey, authorization, currencyAmount.amount)
 
-    def sale(merchantKey: String = someMerchant, creditCard: CreditCard = creditCard, payment: Payment = payment) =
+    def sale(merchantKey: String = someMerchantStr, creditCard: CreditCard = creditCard, payment: Payment = payment) =
       worldpayGateway.sale(merchantKey, creditCard, payment, customer = None, deal = None)
 
-    def void(merchantKey: String = someMerchant, authorization: String = someAuthorization) =
+    def void(merchantKey: String = someMerchantStr, authorization: String = someAuthorization) =
       worldpayGateway.voidAuthorization(merchantKey, authorization)
   }
 }
