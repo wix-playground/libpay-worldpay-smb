@@ -88,7 +88,7 @@ class WorldpaySmbDriver(port: Int) {
     }
 
     protected def isStubbedEntity(entity: HttpEntity): Boolean = {
-      val actual = toMap(entity)
+      val actual = removeEmptyValuesFromMap(toMap(entity))
       val expected = removeEmptyValuesFromMap(expectedJsonBody)
       actual == expected
     }
