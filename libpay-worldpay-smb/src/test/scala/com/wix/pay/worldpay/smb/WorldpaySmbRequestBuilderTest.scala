@@ -14,15 +14,15 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
     }
 
     "use deal description as order description if deal is available and has a description" in new Ctx {
-      createOrderRequest(Some(deal)) must haveDescription(deal.description.get)
+      createOrderRequest(Some(someDeal)) must haveDescription(someDeal.description.get)
     }
 
     "use deal title as order description if deal is available, has no description but has a title" in new Ctx {
-      createOrderRequest(Some(deal.withoutDescription)) must haveDescription(deal.title.get)
+      createOrderRequest(Some(someDeal.withoutDescription)) must haveDescription(someDeal.title.get)
     }
 
     "use deal id as order description if deal is available but has no description or title" in new Ctx {
-      createOrderRequest(Some(deal.withoutDescription.withoutTitle)) must haveDescription(deal.id)
+      createOrderRequest(Some(someDeal.withoutDescription.withoutTitle)) must haveDescription(someDeal.id)
     }
 
     "use merchant settlement currency" in new Ctx {
@@ -33,7 +33,7 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
   trait Ctx extends Scope {
     def createOrderRequest(deal: Option[Deal],
                            merchant: WorldpaySmbMerchant = someMerchant) = WorldpaySmbRequestBuilder.createOrderRequest(
-      merchant, creditCard, currencyAmount, deal, authorizeOnly = true
+      merchant, someCreditCard, someCurrencyAmount, deal, authorizeOnly = true
     )
 
     def haveDescription(description: String): Matcher[OrderRequest] = {

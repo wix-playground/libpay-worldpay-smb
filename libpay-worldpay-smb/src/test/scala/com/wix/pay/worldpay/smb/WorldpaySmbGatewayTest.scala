@@ -12,22 +12,15 @@ class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail if credit card csc is not provided" in new Ctx {
-      val creditCardWithoutCsc = creditCard.copy(additionalFields = Some(CreditCardOptionalFields.withFields(
-        holderName = Some("Some Name")
-      )))
-      authorize(creditCard = creditCardWithoutCsc) must failWithMessage("Credit Card CSC is mandatory for Worldpay!")
+      authorize(creditCard = someCreditCard.withoutCsc) must failWithMessage("Credit Card CSC is mandatory for Worldpay!")
     }
 
     "fail if credit card holder name is not provided" in new Ctx {
-      val creditCardWithoutHolderName = creditCard.copy(additionalFields = Some(CreditCardOptionalFields.withFields(
-        csc = Some("123")
-      )))
-      authorize(creditCard = creditCardWithoutHolderName) must failWithMessage("Credit Card Holder Name is mandatory for Worldpay!")
+      authorize(creditCard = someCreditCard.withoutHolderName) must failWithMessage("Credit Card Holder Name is mandatory for Worldpay!")
     }
 
     "fail if payment has more than 1 installment" in new Ctx {
-      val paymentWithInvalidInstallments = payment.copy(installments = 2)
-      authorize(payment = paymentWithInvalidInstallments) must failWithMessage("Worldpay does not support installments!")
+      authorize(payment = somePayment.withInstallments(2)) must failWithMessage("Worldpay does not support installments!")
     }
   }
 
@@ -47,22 +40,15 @@ class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail if credit card csc is not provided" in new Ctx {
-      val creditCardWithoutCsc = creditCard.copy(additionalFields = Some(CreditCardOptionalFields.withFields(
-        holderName = Some("Some Name")
-      )))
-      sale(creditCard = creditCardWithoutCsc) must failWithMessage("Credit Card CSC is mandatory for Worldpay!")
+      sale(creditCard = someCreditCard.withoutCsc) must failWithMessage("Credit Card CSC is mandatory for Worldpay!")
     }
 
     "fail if credit card holder name is not provided" in new Ctx {
-      val creditCardWithoutHolderName = creditCard.copy(additionalFields = Some(CreditCardOptionalFields.withFields(
-        csc = Some("123")
-      )))
-      sale(creditCard = creditCardWithoutHolderName) must failWithMessage("Credit Card Holder Name is mandatory for Worldpay!")
+      sale(creditCard = someCreditCard.withoutHolderName) must failWithMessage("Credit Card Holder Name is mandatory for Worldpay!")
     }
 
     "fail if payment has more than 1 installment" in new Ctx {
-      val paymentWithInvalidInstallments = payment.copy(installments = 2)
-      sale(payment = paymentWithInvalidInstallments) must failWithMessage("Worldpay does not support installments!")
+      sale(payment = somePayment.withInstallments(2)) must failWithMessage("Worldpay does not support installments!")
     }
   }
 
@@ -79,13 +65,13 @@ class WorldpaySmbGatewayTest extends SpecWithJUnit with WorldpayTestSupport {
   trait Ctx extends Scope {
     val worldpayGateway = new WorldpaySmbGateway("")
 
-    def authorize(merchantKey: String = someMerchantStr, creditCard: CreditCard = creditCard, payment: Payment = payment) =
+    def authorize(merchantKey: String = someMerchantStr, creditCard: CreditCard = someCreditCard, payment: Payment = somePayment) =
       worldpayGateway.authorize(merchantKey, creditCard, payment, customer = None, deal = None)
 
     def capture(merchantKey: String = someMerchantStr, authorization: String = someAuthorization) =
-      worldpayGateway.capture(merchantKey, authorization, currencyAmount.amount)
+      worldpayGateway.capture(merchantKey, authorization, someCurrencyAmount.amount)
 
-    def sale(merchantKey: String = someMerchantStr, creditCard: CreditCard = creditCard, payment: Payment = payment) =
+    def sale(merchantKey: String = someMerchantStr, creditCard: CreditCard = someCreditCard, payment: Payment = somePayment) =
       worldpayGateway.sale(merchantKey, creditCard, payment, customer = None, deal = None)
 
     def void(merchantKey: String = someMerchantStr, authorization: String = someAuthorization) =
