@@ -78,5 +78,5 @@ object WorldpaySmbRequestBuilder {
   }
 
   private def toWorldpayAmount(currencyAmount: CurrencyAmount): Int = toWorldpayAmount(currencyAmount.amount)
-  private def toWorldpayAmount(amount: Double): Int = (amount * 100).toInt
+  private def toWorldpayAmount(amount: Double): Int = (BigDecimal(amount) * 100).toInt
 }

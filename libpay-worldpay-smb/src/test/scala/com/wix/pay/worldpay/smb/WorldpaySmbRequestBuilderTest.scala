@@ -28,6 +28,10 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
     "use merchant settlement currency" in new Ctx {
       createOrderRequest(None, merchant = someMerchant.copy(settlementCurrency = "UAH")) must haveSettlementCurrency(CurrencyCode.UAH)
     }
+
+    "use exact worldPay amount for createCaptureRequest" in new Ctx {
+      WorldpaySmbRequestBuilder.createCaptureRequest(145.20).getCaptureAmount must beEqualTo(14520)
+    }
   }
 
   trait Ctx extends Scope {
