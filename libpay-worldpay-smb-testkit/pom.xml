@@ -32,6 +32,11 @@
             <version>${com.wix.pay.libpay.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.wix.pay</groupId>
+            <artifactId>libpay-testkit</artifactId>
+            <version>${com.wix.pay.libpay.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.wix.hoopoe.http</groupId>
             <artifactId>http-testkit_${scala.dependencies.version}</artifactId>
             <version>${com.wix.hoopoe.http.version}</version>

@@ -3,12 +3,13 @@ package com.wix.pay.worldpay.smb.testkit
 import com.wix.hoopoe.http.testkit.EmbeddedHttpProbe
 import com.wix.pay.creditcard.CreditCard
 import com.wix.pay.model.{CurrencyAmount, Deal}
+import com.wix.pay.testkit.LibPayTestSupport
 import org.json4s.DefaultFormats
 import org.json4s.native.Serialization
 import spray.http._
 
-class WorldpaySmbDriver(port: Int) {
-  private val probe = new EmbeddedHttpProbe(port, EmbeddedHttpProbe.NotFoundHandler)
+class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
+  def this(port: Int) = this(new EmbeddedHttpProbe(port, EmbeddedHttpProbe.NotFoundHandler))
 
   def reset(): Unit = probe.reset()
 
@@ -26,6 +27,10 @@ class WorldpaySmbDriver(port: Int) {
     AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = true)
   }
 
+  def anyAuthorizationRequest(serviceKey: String) = {
+    AnyAuthorizationRequest(serviceKey, authorizeOnly = true)
+  }
+
   def aCaptureRequest(serviceKey: String,
                       orderCode: String,
                       creditCard: CreditCard,
@@ -40,6 +45,10 @@ class WorldpaySmbDriver(port: Int) {
                    currencyAmount: CurrencyAmount,
                    deal: Option[Deal]) = {
     AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = false)
+  }
+
+  def anySaleRequest(serviceKey: String) = {
+    AnyAuthorizationRequest(serviceKey, authorizeOnly = false)
   }
 
   def aVoidAuthorizationRequest(serviceKey: String,
@@ -154,6 +163,27 @@ class WorldpaySmbDriver(port: Int) {
 
     override protected def validResponse(orderCode: String) =
       response(orderCode, paymentStatus = "AUTHORIZED", cvcStatus = "APPROVED", statusReason = None, authorizeOnly)
+  }
+
+  case class AnyAuthorizationRequest(serviceKey: String, authorizeOnly: Boolean)
+    extends WorldpayRequest(serviceKey, path = "/orders") with WorldpayHelper {
+
+    override def creditCard: CreditCard = LibPayTestSupport.someCreditCard
+    override def currencyAmount: CurrencyAmount = LibPayTestSupport.someCurrencyAmount
+    override def deal: Option[Deal] = Some(LibPayTestSupport.someDeal)
+    override protected def expectedJsonBody: Map[String, Any] = Map.empty
+    override protected def isStubbedEntity(entity: HttpEntity): Boolean = true
+
+    override protected def validResponse(orderCode: String) =
+      response(orderCode, paymentStatus = "AUTHORIZED", cvcStatus = "APPROVED", statusReason = None, authorizeOnly)
+
+    def isRejectedWith(orderCode: String, reason: String): Unit = {
+      val response = removeEmptyValuesFromMap(rejectResponse(orderCode, reason))
+      respondWith(StatusCodes.OK, toJson(response))
+    }
+
+    private def rejectResponse(orderCode: String, reason: String): Map[String, Any] =
+      response(orderCode, paymentStatus = "FAILED", cvcStatus = "FAILED", statusReason = Some(reason), authorizeOnly)
   }
 
   case class CaptureRequest(serviceKey: String,
