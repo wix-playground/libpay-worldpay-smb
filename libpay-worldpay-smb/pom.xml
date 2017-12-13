@@ -47,6 +47,13 @@
             <groupId>com.wix.pay</groupId>
             <artifactId>libpay-testkit</artifactId>
             <version>${com.wix.pay.libpay.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.wix</groupId>
+            <artifactId>http-testkit_${scala.dependencies.version}</artifactId>
+            <version>${com.wix.http.testkit.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.wix.pay</groupId>

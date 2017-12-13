@@ -1,19 +1,42 @@
 package com.wix.pay.worldpay.smb
 
-import com.wix.pay.worldpay.smb.testkit.WorldpaySmbDriver
+
+import scala.util.Try
 import org.specs2.mutable.SpecWithJUnit
 import org.specs2.specification.Scope
-import spray.http.StatusCodes
+import akka.http.scaladsl.model.StatusCodes
+import com.wix.pay.worldpay.smb.testkit.WorldpaySmbDriver
+
 
 class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
   val probePort = 10001
   val driver = new WorldpaySmbDriver(probePort)
+  val gateway = new WorldpaySmbGateway(s"http://localhost:$probePort")
+
+  def givenWorldpayAuthorizationRequest: driver.AuthorizationRequest = driver.anAuthorizationRequest(
+    serviceKey, settlementCurrency, someCreditCard, someCurrencyAmount, Some(someDeal))
+  def authorize(): Try[String] = gateway.authorize(someMerchantStr, someCreditCard, somePayment, None, Some(someDeal))
+
+  def givenWorldpayCaptureRequest: driver.CaptureRequest = driver.aCaptureRequest(
+    serviceKey, someOrderCode, someCreditCard, someCurrencyAmount, Some(someDeal))
+  def capture(): Try[String] = gateway.capture(someMerchantStr, someAuthorization, someCurrencyAmount.amount)
+
+  def givenWorldpaySaleRequest: driver.AuthorizationRequest = driver.aSaleRequest(
+    serviceKey, settlementCurrency, someCreditCard, someCurrencyAmount, Some(someDeal))
+  def sale(): Try[String] = gateway.sale(someMerchantStr, someCreditCard, somePayment, None, Some(someDeal))
+
+  def givenWorldpayVoidAuthorizationRequest: driver.VoidAuthorizationRequest = driver.aVoidAuthorizationRequest(
+    serviceKey, someOrderCode)
+  def voidAuthorization(): Try[String] = gateway.voidAuthorization(someMerchantStr, someAuthorization)
+
 
   step {
     driver.start()
   }
 
+
   sequential
+
 
   "authorize request" should {
     "successfully yield an authorization key upon a valid request" in new Ctx {
@@ -22,20 +45,21 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail with PaymentRejectedException for rejected transactions" in new Ctx {
-      givenWorldpayAuthorizationRequest isRejectedWith(someOrderCode, "Some error message")
+      givenWorldpayAuthorizationRequest getsRejectedWith(someOrderCode, "Some error message")
       authorize() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
-      givenWorldpayAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      givenWorldpayAuthorizationRequest getsAnErrorWith(StatusCodes.BadRequest, "Some error message")
       authorize() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpayAuthorizationRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
+      givenWorldpayAuthorizationRequest getsAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       authorize() must failWithMessage("Something bad happened")
     }
   }
+
 
   "capture request" should {
     "successfully yield an orderCode upon a valid request" in new Ctx {
@@ -44,15 +68,16 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
-      givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      givenWorldpayCaptureRequest getsAnErrorWith(StatusCodes.BadRequest, "Some error message")
       capture() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpayCaptureRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
+      givenWorldpayCaptureRequest getsAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       capture() must failWithMessage("Something bad happened")
     }
   }
+
 
   "sale request" should {
     "successfully yield an authorization key upon a valid request" in new Ctx {
@@ -61,20 +86,21 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail with PaymentRejectedException for rejected transactions" in new Ctx {
-      givenWorldpaySaleRequest isRejectedWith(someOrderCode, "Some error message")
+      givenWorldpaySaleRequest getsRejectedWith(someOrderCode, "Some error message")
       sale() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
-      givenWorldpaySaleRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      givenWorldpaySaleRequest getsAnErrorWith(StatusCodes.BadRequest, "Some error message")
       sale() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpaySaleRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
+      givenWorldpaySaleRequest getsAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       sale() must failWithMessage("Something bad happened")
     }
   }
+
 
   "voidAuthorization request" should {
     "successfully yield an authorization key upon a valid request" in new Ctx {
@@ -83,35 +109,23 @@ class WorldpaySmbGatewayIT extends SpecWithJUnit with WorldpayTestSupport {
     }
 
     "fail with PaymentRejectedException for 'Bad Request 400' response" in new Ctx {
-      givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.BadRequest, "Some error message")
+      givenWorldpayVoidAuthorizationRequest getsAnErrorWith(StatusCodes.BadRequest, "Some error message")
       voidAuthorization() must beRejectedWithMessage("Some error message")
     }
 
     "fail with PaymentErrorException for erroneous response" in new Ctx {
-      givenWorldpayVoidAuthorizationRequest isAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
+      givenWorldpayVoidAuthorizationRequest getsAnErrorWith(StatusCodes.Unauthorized, "Something bad happened")
       voidAuthorization() must failWithMessage("Something bad happened")
     }
   }
+
 
   step {
     driver.stop()
   }
 
+
   trait Ctx extends Scope {
-    val gateway = new WorldpaySmbGateway(s"http://localhost:$probePort")
-
     driver.reset()
-
-    def givenWorldpayAuthorizationRequest = driver.anAuthorizationRequest(serviceKey, settlementCurrency, someCreditCard, someCurrencyAmount, Some(someDeal))
-    def authorize() = gateway.authorize(someMerchantStr, someCreditCard, somePayment, None, Some(someDeal))
-
-    def givenWorldpayCaptureRequest = driver.aCaptureRequest(serviceKey, someOrderCode, someCreditCard, someCurrencyAmount, Some(someDeal))
-    def capture() = gateway.capture(someMerchantStr, someAuthorization, someCurrencyAmount.amount)
-
-    def givenWorldpaySaleRequest = driver.aSaleRequest(serviceKey, settlementCurrency, someCreditCard, someCurrencyAmount, Some(someDeal))
-    def sale() = gateway.sale(someMerchantStr, someCreditCard, somePayment, None, Some(someDeal))
-
-    def givenWorldpayVoidAuthorizationRequest = driver.aVoidAuthorizationRequest(serviceKey, someOrderCode)
-    def voidAuthorization() = gateway.voidAuthorization(someMerchantStr, someAuthorization)
   }
 }

@@ -1,33 +1,39 @@
 package com.wix.pay.worldpay.smb.testkit
 
-import com.wix.hoopoe.http.testkit.EmbeddedHttpProbe
+
+import org.json4s.{DefaultFormats, Formats}
+import org.json4s.native.Serialization
+import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.model._
+import com.wix.e2e.http.api.StubWebServer
+import com.wix.e2e.http.client.extractors.HttpMessageExtractors._
+import com.wix.e2e.http.server.WebServerFactory.aStubWebServer
 import com.wix.pay.creditcard.CreditCard
 import com.wix.pay.model.{CurrencyAmount, Deal}
 import com.wix.pay.testkit.LibPayTestSupport
-import org.json4s.DefaultFormats
-import org.json4s.native.Serialization
-import spray.http._
 
-class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
-  def this(port: Int) = this(new EmbeddedHttpProbe(port, EmbeddedHttpProbe.NotFoundHandler))
 
-  def reset(): Unit = probe.reset()
+class WorldpaySmbDriver(port: Int) {
+  private val server: StubWebServer = aStubWebServer.onPort(port).build
 
-  def start(): Unit = probe.doStart()
+  def start(): Unit = server.start()
+  def stop(): Unit = server.stop()
+  def reset(): Unit = {
+    server.replaceWith()
+    server.clearRecordedRequests()
+  }
 
-  def stop(): Unit = probe.doStop()
-
-  def requests = probe.requests
+  def requests: Seq[HttpRequest] = server.recordedRequests
 
   def anAuthorizationRequest(serviceKey: String,
                              settlementCurrency: String,
                              creditCard: CreditCard,
                              currencyAmount: CurrencyAmount,
-                             deal: Option[Deal]) = {
+                             deal: Option[Deal]): AuthorizationRequest = {
     AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = true)
   }
 
-  def anyAuthorizationRequest(serviceKey: String) = {
+  def anyAuthorizationRequest(serviceKey: String): AnyAuthorizationRequest = {
     AnyAuthorizationRequest(serviceKey, authorizeOnly = true)
   }
 
@@ -35,7 +41,7 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
                       orderCode: String,
                       creditCard: CreditCard,
                       currencyAmount: CurrencyAmount,
-                      deal: Option[Deal]) = {
+                      deal: Option[Deal]): CaptureRequest = {
     CaptureRequest(serviceKey, orderCode, creditCard, currencyAmount, deal)
   }
 
@@ -43,18 +49,19 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
                    settlementCurrency: String,
                    creditCard: CreditCard,
                    currencyAmount: CurrencyAmount,
-                   deal: Option[Deal]) = {
+                   deal: Option[Deal]): AuthorizationRequest = {
     AuthorizationRequest(serviceKey, settlementCurrency, creditCard, currencyAmount, deal, authorizeOnly = false)
   }
 
-  def anySaleRequest(serviceKey: String) = {
+  def anySaleRequest(serviceKey: String): AnyAuthorizationRequest = {
     AnyAuthorizationRequest(serviceKey, authorizeOnly = false)
   }
 
   def aVoidAuthorizationRequest(serviceKey: String,
-                                orderCode: String) = {
+                                orderCode: String): VoidAuthorizationRequest = {
     VoidAuthorizationRequest(serviceKey, orderCode)
   }
+
 
   abstract class WorldpayRequest(serviceKey: String, path: String, method: HttpMethod = HttpMethods.POST) {
     protected def expectedJsonBody: Map[String, Any]
@@ -65,60 +72,67 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
       respondWith(StatusCodes.OK, toJson(response))
     }
 
-    def isAnErrorWith(statusCode: StatusCode, errorDescription: String): Unit = {
+    def getsAnErrorWith(statusCode: StatusCode, errorDescription: String): Unit = {
       val response = Map(
         "httpStatusCode" -> statusCode.intValue,
         "customCode" -> errorDescription,
         "message" -> errorDescription,
-        "description" -> errorDescription
-      )
+        "description" -> errorDescription)
+
       respondWith(statusCode, toJson(response))
     }
 
     protected def respondWith(status: StatusCode, content: String): Unit = {
-      probe.handlers.clear()
-      probe.handlers += {
-        case HttpRequest(requestMethod, requestPath, headers, entity, _)
-          if requestMethod == method &&
-            requestPath.path == Uri(path).path &&
-            isJson(headers) &&
-            isAuthorized(headers) &&
-            isStubbedEntity(entity) =>
-          HttpResponse(status = status, entity = content)
+      server.appendAll {
+        case HttpRequest(
+          `method`,
+          Path(`path`),
+          headers,
+          entity,
+          _) if isStubbed(entity, headers) => HttpResponse(status = status, entity = content)
       }
     }
 
-    private def isJson(headers: List[HttpHeader]): Boolean = headers.exists { header =>
-      header.name == "Content-Type" && header.value == "application/json"
-    }
-
-    private def isAuthorized(headers: List[HttpHeader]): Boolean = headers.exists { header =>
-      header.name == "Authorization" && header.value == serviceKey
-    }
-
-    protected def isStubbedEntity(entity: HttpEntity): Boolean = {
+    protected def isStubbed(entity: HttpEntity, headers: Seq[HttpHeader]): Boolean = {
       val actual = removeEmptyValuesFromMap(toMap(entity))
       val expected = removeEmptyValuesFromMap(expectedJsonBody)
-      actual == expected
+
+      entity.contentType == ContentTypes.`application/json` &&
+        headers.exists(header => header.name == "Authorization" && header.value == serviceKey) &&
+        actual == expected
     }
 
-    implicit val formats = DefaultFormats
-    protected def toJson(map: Map[String, Any]): String = Serialization.write(map)
-    private def toMap(entity: HttpEntity): Map[String, Any] = Serialization.read[Map[String, Any]](entity.asString)
+    implicit val formats: Formats = DefaultFormats
+    protected def toJson(map: Map[_, _]): String = Serialization.write(map)
+    private def toMap(entity: HttpEntity): Map[String, _] = {
+      Serialization.read[Map[String, _]](entity.extractAsString)
+    }
 
-    protected def removeEmptyValuesFromMap(map: Map[String, Any]): Map[String, Any] = map.flatMap { case (key, value) =>
-      val filteredValue = filterValue(value)
-      filteredValue.map(key -> _)
+    protected def removeEmptyValuesFromMap(map: Map[_, _]): Map[_, _] = map.flatMap {
+      case (key, value) =>
+        val filteredValue = filterValue(value)
+        filteredValue.map(key -> _)
     }
 
     private def filterValue(value: Any): Option[Any] = value match {
-      case str: String => if (str.nonEmpty) Some(str) else None
-      case Some(o) => filterValue(o)
-      case None => None
-      case map: Map[String, Any] =>
+      case str: String if str.nonEmpty =>
+        Some(str)
+
+      case _: String =>
+        None
+
+      case Some(o) =>
+        filterValue(o)
+
+      case None =>
+        None
+
+      case map: Map[_, _] =>
         val filteredMap = removeEmptyValuesFromMap(map)
         if (filteredMap.nonEmpty) Some(filteredMap) else None
-      case x => Some(x)
+
+      case x =>
+        Some(x)
     }
 
     protected def toWorldPayAmount(currencyAmount: CurrencyAmount): Int = (currencyAmount.amount * 100).toInt
@@ -153,7 +167,7 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
       "customerOrderCode" -> deal.flatMap(_.invoiceId)
     )
 
-    def isRejectedWith(orderCode: String, reason: String): Unit = {
+    def getsRejectedWith(orderCode: String, reason: String): Unit = {
       val response = removeEmptyValuesFromMap(rejectResponse(orderCode, reason))
       respondWith(StatusCodes.OK, toJson(response))
     }
@@ -161,9 +175,10 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
     private def rejectResponse(orderCode: String, reason: String): Map[String, Any] =
       response(orderCode, paymentStatus = "FAILED", cvcStatus = "FAILED", statusReason = Some(reason), authorizeOnly)
 
-    override protected def validResponse(orderCode: String) =
+    override protected def validResponse(orderCode: String): Map[String, Any] =
       response(orderCode, paymentStatus = "AUTHORIZED", cvcStatus = "APPROVED", statusReason = None, authorizeOnly)
   }
+
 
   case class AnyAuthorizationRequest(serviceKey: String, authorizeOnly: Boolean)
     extends WorldpayRequest(serviceKey, path = "/orders") with WorldpayHelper {
@@ -172,12 +187,12 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
     override def currencyAmount: CurrencyAmount = LibPayTestSupport.someCurrencyAmount
     override def deal: Option[Deal] = Some(LibPayTestSupport.someDeal)
     override protected def expectedJsonBody: Map[String, Any] = Map.empty
-    override protected def isStubbedEntity(entity: HttpEntity): Boolean = true
+    override protected def isStubbed(entity: HttpEntity, headers: Seq[HttpHeader]): Boolean = true
 
-    override protected def validResponse(orderCode: String) =
+    override protected def validResponse(orderCode: String): Map[String, Any] =
       response(orderCode, paymentStatus = "AUTHORIZED", cvcStatus = "APPROVED", statusReason = None, authorizeOnly)
 
-    def isRejectedWith(orderCode: String, reason: String): Unit = {
+    def getsRejectedWith(orderCode: String, reason: String): Unit = {
       val response = removeEmptyValuesFromMap(rejectResponse(orderCode, reason))
       respondWith(StatusCodes.OK, toJson(response))
     }
@@ -198,16 +213,19 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
       "merchantId" -> null
     )
 
-    protected override def validResponse(orderCode: String) =
+    protected override def validResponse(orderCode: String): Map[String, Any] =
       response(orderCode, paymentStatus = "SUCCESS", cvcStatus = "APPROVED", statusReason = None, authorizeOnly = true)
   }
 
-  case class VoidAuthorizationRequest(serviceKey: String,
-                                      orderCode: String) extends WorldpayRequest(serviceKey, path = s"/orders/$orderCode", method = HttpMethods.DELETE) {
-    override protected def expectedJsonBody = Map.empty
-    override protected def isStubbedEntity(entity: HttpEntity) = true
-    protected override def validResponse(orderCode: String) = Map.empty
+
+  case class VoidAuthorizationRequest(serviceKey: String, orderCode: String)
+    extends WorldpayRequest(serviceKey, path = s"/orders/$orderCode", method = HttpMethods.DELETE) {
+
+    override protected def expectedJsonBody: Map[String, Nothing] = Map.empty
+    override protected def isStubbed(entity: HttpEntity, headers: Seq[HttpHeader]): Boolean = true
+    protected override def validResponse(orderCode: String): Map[String, Nothing] = Map.empty
   }
+
 
   trait WorldpayHelper { self: WorldpayRequest =>
     def creditCard: CreditCard
@@ -220,8 +238,7 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
       "postalCode" -> billingAddress.flatMap(_.postalCode),
       "city" -> billingAddress.flatMap(_.city),
       "state" -> billingAddress.flatMap(_.state),
-      "countryCode" -> billingAddress.flatMap(_.countryCode).map(_.getCountry.toUpperCase)
-    )
+      "countryCode" -> billingAddress.flatMap(_.countryCode).map(_.getCountry.toUpperCase))
 
     private val shippingAddress = deal.flatMap(_.shippingAddress)
     protected val shippingAddressMap = Map(
@@ -232,8 +249,7 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
       "countryCode" -> shippingAddress.flatMap(_.countryCode).map(_.getCountry.toUpperCase),
       "phone" -> shippingAddress.flatMap(_.phone),
       "firstName" -> shippingAddress.flatMap(_.firstName),
-      "lastName" -> shippingAddress.flatMap(_.lastName)
-    )
+      "lastName" -> shippingAddress.flatMap(_.lastName))
 
     protected def response(orderCode: String,
                            paymentStatus: String,
@@ -262,20 +278,16 @@ class WorldpaySmbDriver(probe: EmbeddedHttpProbe) {
         "cardClass" -> "credit",
         "cardProductTypeDescNonContactless" -> "Visa Credit Personal",
         "cardProductTypeDescContactless" -> "CL Visa Credit Pers",
-        "prepaid" -> "false"
-      ),
+        "prepaid" -> "false"),
       "authorizeOnly" -> authorizeOnly,
       "deliveryAddress" -> shippingAddressMap,
       "customerOrderCode" -> deal.flatMap(_.invoiceId),
       "environment" -> "TEST",
       "authorizedAmount" -> toWorldPayAmount(currencyAmount),
       "riskScore" -> Map(
-        "value" -> "1"
-      ),
+        "value" -> "1"),
       "resultCodes" -> Map(
         "avsResultCode" -> "APPROVED",
-        "cvcResultCode" -> cvcStatus
-      )
-    )
+        "cvcResultCode" -> cvcStatus))
   }
 }
