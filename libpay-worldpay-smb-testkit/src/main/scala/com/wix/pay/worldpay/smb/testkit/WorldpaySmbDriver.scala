@@ -13,8 +13,8 @@ import com.wix.pay.model.{CurrencyAmount, Deal}
 import com.wix.pay.testkit.LibPayTestSupport
 
 
-class WorldpaySmbDriver(port: Int) {
-  private val server: StubWebServer = aStubWebServer.onPort(port).build
+class WorldpaySmbDriver(server: StubWebServer) {
+  def this(port: Int) = this(aStubWebServer.onPort(port).build)
 
   def start(): Unit = server.start()
   def stop(): Unit = server.stop()
