@@ -13,13 +13,16 @@ object WorldpaySmbRequestBuilder {
                          creditCard: CreditCard,
                          currencyAmount: CurrencyAmount,
                          deal: Option[Deal],
-                         authorizeOnly: Boolean): OrderRequest = {
+                         authorizeOnly: Boolean,
+                         ignoreSettlementCurrency: Boolean): OrderRequest = {
     val orderRequest = new OrderRequest()
     orderRequest.setAuthorizeOnly(authorizeOnly)
     orderRequest.setAmount(toWorldpayAmount(currencyAmount))
     orderRequest.setCurrencyCode(CurrencyCode.valueOf(currencyAmount.currency))
-    orderRequest.setSettlementCurrency(CurrencyCode.valueOf(merchant.settlementCurrency))
     orderRequest.setName(creditCard.holderName.get)
+    if (!ignoreSettlementCurrency) {
+      orderRequest.setSettlementCurrency(CurrencyCode.valueOf(merchant.settlementCurrency))
+    }
 
     val cardRequest = createCardRequest(creditCard)
     orderRequest.setCommonToken(new CommonToken(cardRequest, false))

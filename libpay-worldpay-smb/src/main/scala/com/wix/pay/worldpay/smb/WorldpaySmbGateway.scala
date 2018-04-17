@@ -12,7 +12,8 @@ import scala.util.Try
 
 class WorldpaySmbGateway(endpointUrl: String,
                          merchantParser: WorldpaySmbMerchantParser = JsonWorldpaySmbMerchantParser,
-                         authorizationParser: WorldpaySmbAuthorizationParser = JsonWorldpaySmbAuthorizationParser) extends PaymentGateway {
+                         authorizationParser: WorldpaySmbAuthorizationParser = JsonWorldpaySmbAuthorizationParser,
+                         ignoreSettlementCurrency: Boolean = false) extends PaymentGateway {
 
   override def authorize(merchantKey: String, creditCard: CreditCard, payment: Payment, customer: Option[Customer], deal: Option[Deal]): Try[String] = {
     for (orderCode <- submitOrder(merchantKey, creditCard, payment, deal, authorizeOnly = true)) yield {
@@ -49,7 +50,7 @@ class WorldpaySmbGateway(endpointUrl: String,
       val merchant = merchantParser.parse(merchantKey)
       val client = new WorldpayRestClient(endpointUrl, merchant.serviceKey)
 
-      val orderRequest = WorldpaySmbRequestBuilder.createOrderRequest(merchant, creditCard, payment.currencyAmount, deal, authorizeOnly)
+      val orderRequest = WorldpaySmbRequestBuilder.createOrderRequest(merchant, creditCard, payment.currencyAmount, deal, authorizeOnly, ignoreSettlementCurrency)
       val orderResponse = client.getOrderService.create(orderRequest)
       if (orderResponse.getPaymentStatus == OrderStatus.FAILED.name()) {
         throw new PaymentRejectedException(orderResponse.getPaymentStatusReason, cause = null)
