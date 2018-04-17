@@ -29,6 +29,10 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
       createOrderRequest(None, merchant = someMerchant.copy(settlementCurrency = "UAH")) must haveSettlementCurrency(CurrencyCode.UAH)
     }
 
+    "ignore settlement currency if it is disabled" in new Ctx {
+      createOrderRequest(None, merchant = someMerchant.copy(settlementCurrency = "UAH"), ignoreSettlementCurrency = true) must not(haveSettlementCurrency(CurrencyCode.UAH))
+    }
+
     "use exact worldPay amount for createCaptureRequest" in new Ctx {
       WorldpaySmbRequestBuilder.createCaptureRequest(145.20).getCaptureAmount must beEqualTo(14520)
     }
@@ -36,8 +40,9 @@ class WorldpaySmbRequestBuilderTest extends SpecWithJUnit with WorldpayTestSuppo
 
   trait Ctx extends Scope {
     def createOrderRequest(deal: Option[Deal],
-                           merchant: WorldpaySmbMerchant = someMerchant) = WorldpaySmbRequestBuilder.createOrderRequest(
-      merchant, someCreditCard, someCurrencyAmount, deal, authorizeOnly = true
+                           merchant: WorldpaySmbMerchant = someMerchant,
+                           ignoreSettlementCurrency: Boolean = false) = WorldpaySmbRequestBuilder.createOrderRequest(
+      merchant, someCreditCard, someCurrencyAmount, deal, authorizeOnly = true, ignoreSettlementCurrency
     )
 
     def haveDescription(description: String): Matcher[OrderRequest] = {
